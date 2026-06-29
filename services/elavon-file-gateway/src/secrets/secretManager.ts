@@ -1,30 +1,27 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 
 import type { ServiceConfig } from "../config.js";
-import { getMissingSecretConfig } from "../config.js";
 import { logger } from "../logger.js";
 
-export type SecretRetrievalFailureReason =
-  | "missing_configuration"
-  | "secret_not_found"
-  | "permission_denied"
-  | "empty_secret_payload"
-  | "client_error";
+export type SecretPurpose = "elavonSshPrivateKey" | "elavonSftpUserId";
 
-type SecretRetrievalResult =
+export type SecretFailureReason =
+  | "missing_config"
+  | "secret_unavailable"
+  | "unexpected_error";
+
+export type SecretValueResult =
   | {
       ok: true;
+      value: string;
     }
   | {
       ok: false;
-      reason: SecretRetrievalFailureReason;
-      message: string;
-      missingConfiguration?: string[];
+      reason: SecretFailureReason;
     };
 
 type GoogleClientError = {
   code?: number | string;
-  message?: string;
 };
 
 const googleErrorCode = {
@@ -42,37 +39,21 @@ const toSecretVersionName = (projectId: string, secretName: string): string => {
   return `projects/${projectId}/secrets/${secretName}/versions/latest`;
 };
 
-const normalizeClientError = (
-  error: unknown,
-): Pick<Extract<SecretRetrievalResult, { ok: false }>, "reason" | "message"> => {
+const normalizeClientError = (error: unknown): SecretFailureReason => {
   const clientError = error as GoogleClientError;
 
   if (
     clientError.code === googleErrorCode.notFound ||
     clientError.code === String(googleErrorCode.notFound) ||
-    clientError.code === "NOT_FOUND"
-  ) {
-    return {
-      reason: "secret_not_found",
-      message: "Elavon SSH private key secret was not found",
-    };
-  }
-
-  if (
+    clientError.code === "NOT_FOUND" ||
     clientError.code === googleErrorCode.permissionDenied ||
     clientError.code === String(googleErrorCode.permissionDenied) ||
     clientError.code === "PERMISSION_DENIED"
   ) {
-    return {
-      reason: "permission_denied",
-      message: "Access to Elavon SSH private key secret was denied",
-    };
+    return "secret_unavailable";
   }
 
-  return {
-    reason: "client_error",
-    message: "Google Secret Manager client error",
-  };
+  return "unexpected_error";
 };
 
 export class ElavonSecretManager {
@@ -82,44 +63,43 @@ export class ElavonSecretManager {
     this.client = client;
   }
 
-  async verifyElavonSshPrivateKey(config: ServiceConfig): Promise<SecretRetrievalResult> {
-    const missingConfiguration = getMissingSecretConfig(config);
+  async getElavonSshPrivateKey(
+    config: ServiceConfig,
+  ): Promise<SecretValueResult> {
+    return this.getSecretValue(
+      config,
+      config.elavonSshPrivateKeySecretName,
+      "elavonSshPrivateKey",
+    );
+  }
 
-    if (missingConfiguration.length > 0) {
-      logger.warn("missing configuration for secret retrieval", {
+  async getElavonSftpUserId(config: ServiceConfig): Promise<SecretValueResult> {
+    return this.getSecretValue(
+      config,
+      config.elavonSftpUserIdSecretName,
+      "elavonSftpUserId",
+    );
+  }
+
+  private async getSecretValue(
+    config: ServiceConfig,
+    secretName: string | undefined,
+    purpose: SecretPurpose,
+  ): Promise<SecretValueResult> {
+    if (!config.gcpProjectId || !secretName) {
+      logger.warn("secret retrieval failed", {
         service: config.serviceName,
-        missingConfiguration,
+        purpose,
+        reason: "missing_config",
       });
 
       return {
         ok: false,
-        reason: "missing_configuration",
-        message: "Missing required Secret Manager configuration",
-        missingConfiguration,
+        reason: "missing_config",
       };
     }
 
-    const projectId = config.gcpProjectId;
-    const secretName = config.elavonSshPrivateKeySecretName;
-
-    if (!projectId || !secretName) {
-      return {
-        ok: false,
-        reason: "missing_configuration",
-        message: "Missing required Secret Manager configuration",
-        missingConfiguration,
-      };
-    }
-
-    const secretVersionName = toSecretVersionName(
-      projectId,
-      secretName,
-    );
-
-    logger.info("secret retrieval started", {
-      service: config.serviceName,
-      secretName,
-    });
+    const secretVersionName = toSecretVersionName(config.gcpProjectId, secretName);
 
     try {
       const [version] = await this.client.accessSecretVersion({
@@ -136,35 +116,37 @@ export class ElavonSecretManager {
       if (!payload) {
         logger.error("secret retrieval failed", {
           service: config.serviceName,
-          secretName,
-          reason: "empty_secret_payload",
+          purpose,
+          reason: "secret_unavailable",
         });
 
         return {
           ok: false,
-          reason: "empty_secret_payload",
-          message: "Secret payload is empty",
+          reason: "secret_unavailable",
         };
       }
 
       logger.info("secret retrieval succeeded", {
         service: config.serviceName,
-        secretName,
+        purpose,
       });
 
-      return { ok: true };
+      return {
+        ok: true,
+        value: payload,
+      };
     } catch (error) {
-      const normalizedError = normalizeClientError(error);
+      const reason = normalizeClientError(error);
 
       logger.error("secret retrieval failed", {
         service: config.serviceName,
-        secretName,
-        reason: normalizedError.reason,
+        purpose,
+        reason,
       });
 
       return {
         ok: false,
-        ...normalizedError,
+        reason,
       };
     }
   }

@@ -15,6 +15,11 @@ required_var "GCP_PROJECT_ID"
 required_var "GCP_REGION"
 required_var "GAR_REPOSITORY"
 required_var "CLOUD_RUN_SERVICE"
+required_var "ELAVON_SFTP_ENV"
+required_var "ELAVON_SFTP_HOST"
+required_var "ELAVON_SFTP_PORT"
+required_var "ELAVON_SFTP_USER_ID_SECRET_NAME"
+required_var "ELAVON_SSH_PRIVATE_KEY_SECRET_NAME"
 
 # Optional deployment tag. Defaults to the current Git commit when available.
 IMAGE_TAG="${IMAGE_TAG:-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)}"
@@ -57,6 +62,7 @@ gcloud run deploy "${CLOUD_RUN_SERVICE}" \
   --project "${GCP_PROJECT_ID}" \
   --region "${GCP_REGION}" \
   --image "${IMAGE_URI}" \
+  --update-env-vars "GCP_PROJECT_ID=${GCP_PROJECT_ID},ELAVON_SFTP_ENV=${ELAVON_SFTP_ENV},ELAVON_SFTP_HOST=${ELAVON_SFTP_HOST},ELAVON_SFTP_PORT=${ELAVON_SFTP_PORT},ELAVON_SFTP_USER_ID_SECRET_NAME=${ELAVON_SFTP_USER_ID_SECRET_NAME},ELAVON_SSH_PRIVATE_KEY_SECRET_NAME=${ELAVON_SSH_PRIVATE_KEY_SECRET_NAME}" \
   --platform managed
 
 echo "Deployment submitted for ${CLOUD_RUN_SERVICE} using image ${IMAGE_URI}."
