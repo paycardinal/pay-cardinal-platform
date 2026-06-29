@@ -59,4 +59,5 @@ jobs:
             --timeout "${{ vars.CLOUD_RUN_TIMEOUT }}" \
             --max-instances "${{ vars.CLOUD_RUN_MAX_INSTANCES }}" \
             --ingress "${{ vars.CLOUD_RUN_INGRESS }}" \
+            --update-env-vars "GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }},ELAVON_SSH_PRIVATE_KEY_SECRET_NAME=${{ vars.ELAVON_SSH_PRIVATE_KEY_SECRET_NAME }}" \
             --platform managed
