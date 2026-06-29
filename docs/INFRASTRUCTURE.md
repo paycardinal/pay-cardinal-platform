@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document defines the infrastructure conventions for manually deploying Pay Cardinal Platform services to Google Cloud Run.
+This document defines the infrastructure conventions for deploying Pay Cardinal Platform services to Google Cloud Run.
 
-The goal is to establish shared deployment expectations without introducing automatic deployment, production credentials, or infrastructure-as-code tooling.
+The goal is to establish shared deployment expectations without committing credentials or introducing infrastructure-as-code tooling.
 
 ## Google Cloud Project Conventions
 
@@ -13,9 +13,9 @@ Pay Cardinal Platform environments should use separate Google Cloud projects for
 Project IDs should be explicit, environment-specific, and easy to distinguish during manual operations. A recommended pattern is:
 
 ```text
-pay-cardinal-platform-dev
-pay-cardinal-platform-test
-pay-cardinal-platform-prod
+PROJECT_ID-dev
+PROJECT_ID-test
+PROJECT_ID-prod
 ```
 
 Repository scripts must not hardcode production project IDs. Operators should provide the correct project ID for the target environment before deploying.
@@ -43,10 +43,10 @@ Each service should be independently deployable and should not require changes t
 
 Cloud Run services should be deployed to a single primary region per environment unless a documented operational requirement exists for another region.
 
-Recommended initial region:
+Region value placeholder:
 
 ```text
-us-central1
+GCP_REGION
 ```
 
 Region selection should consider:
@@ -60,10 +60,10 @@ All related runtime resources for a service, including Artifact Registry reposit
 
 Artifact Registry repositories should use the same primary region as the Cloud Run services that consume their images unless an explicit multi-region strategy is approved.
 
-Initial convention:
+Artifact Registry region placeholder:
 
 ```text
-us-central1
+GCP_REGION
 ```
 
 Regional values should be supplied through deployment configuration or operator input. Scripts and workflow templates must not hardcode Production-only assumptions.
@@ -74,10 +74,10 @@ Container images should be stored in Google Artifact Registry.
 
 Artifact Registry repositories should be environment-specific or project-specific. For the initial platform shape, each Google Cloud environment project should contain one Docker repository for platform service images.
 
-Recommended repository name:
+Repository name placeholder:
 
 ```text
-platform-services
+GAR_REPOSITORY
 ```
 
 Repository names should:
@@ -99,12 +99,6 @@ The full image path follows this pattern:
 REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY_NAME/IMAGE_NAME:TAG
 ```
 
-Example:
-
-```text
-us-central1-docker.pkg.dev/pay-cardinal-platform-dev/platform-services/elavon-file-gateway:abc1234
-```
-
 Tags should be traceable to source control. Recommended tag values include:
 
 - A short Git commit SHA.
@@ -119,7 +113,7 @@ The expected Artifact Registry structure is:
 
 ```text
 PROJECT_ID
-  Artifact Registry repository: platform-services
+  Artifact Registry repository: GAR_REPOSITORY
     Image: elavon-file-gateway
       Tags: short SHA, release version, or approved deployment label
 ```
@@ -212,26 +206,135 @@ Logs must not include:
 - Full file payloads.
 - Sensitive customer or merchant data.
 
+## GitHub Actions Deployment Configuration
+
+The active deployment workflow lives at:
+
+```text
+.github/workflows/deploy.yml
+```
+
+It runs on pushes to `main` and can also be started manually with `workflow_dispatch`.
+
+The workflow must be configured with GitHub repository variables and secrets before it can deploy. Cloud-specific values must not be hardcoded in workflow files, scripts, Dockerfiles, or service code.
+
+### Required GitHub Variables
+
+Configure these GitHub Actions repository variables:
+
+```text
+GCP_PROJECT_ID
+GCP_REGION
+GAR_REPOSITORY
+CLOUD_RUN_SERVICE
+```
+
+`GCP_PROJECT_ID` is the target Google Cloud project ID.
+
+`GCP_REGION` is the Google Cloud region used for Artifact Registry and Cloud Run.
+
+`GAR_REPOSITORY` is the Artifact Registry Docker repository name.
+
+`CLOUD_RUN_SERVICE` is the target Cloud Run service name.
+
+### Required GitHub Secrets
+
+Configure these GitHub Actions repository secrets:
+
+```text
+WIF_PROVIDER
+WIF_SERVICE_ACCOUNT
+```
+
+`WIF_PROVIDER` is the full Workload Identity Federation provider resource name.
+
+`WIF_SERVICE_ACCOUNT` is the Google service account email that GitHub Actions impersonates.
+
+Do not use service account key JSON files for repository deployments.
+
+## Required Google Cloud Resources
+
+The deployment workflow does not create Google Cloud resources. Before the first deployment, provision and configure:
+
+- Google Cloud project matching `GCP_PROJECT_ID`.
+- Cloud Run API enabled in the target project.
+- Artifact Registry API enabled in the target project.
+- IAM Credentials API enabled for Workload Identity Federation.
+- Artifact Registry Docker repository matching `GAR_REPOSITORY` in `GCP_REGION`.
+- Cloud Run service matching `CLOUD_RUN_SERVICE` in `GCP_REGION`, or permission for the deployment service account to create it.
+- Workload Identity Pool and Provider matching `WIF_PROVIDER`.
+- Deployment service account matching `WIF_SERVICE_ACCOUNT`.
+- IAM binding allowing the GitHub repository identity to impersonate the deployment service account.
+- Artifact Registry permissions for the deployment service account to push images.
+- Cloud Run permissions for the deployment service account to deploy revisions.
+- Any runtime service account and runtime IAM permissions required by the Cloud Run service.
+
+Runtime secrets, environment variables, and integration credentials must be configured outside source control.
+
 ## Deployment Workflow
 
-Manual deployments should follow a consistent sequence:
+Automated and manual deployments should follow the same sequence:
 
-1. Select the target environment.
-2. Confirm the Google Cloud project, region, Cloud Run service name, Artifact Registry repository, and image name.
-3. Build the service Docker image locally.
-4. Tag the image for Artifact Registry.
+1. Check out the repository revision.
+2. Authenticate to Google Cloud.
+3. Configure Docker authentication for Artifact Registry.
+4. Build the service Docker image with a source-controlled tag.
 5. Push the image to Artifact Registry.
-6. Deploy the image to Cloud Run.
+6. Deploy the pushed image to Cloud Run.
 7. Verify Cloud Run revision health and logs.
 8. Record any operational notes or follow-up decisions.
 
-The initial manual helper script lives at:
+The manual helper script lives at:
 
 ```text
 scripts/deploy.sh
 ```
 
-The script is intentionally configurable and does not contain production values.
+The script uses the same required variable names as GitHub Actions:
+
+```text
+GCP_PROJECT_ID
+GCP_REGION
+GAR_REPOSITORY
+CLOUD_RUN_SERVICE
+```
+
+Operators must authenticate with Google Cloud before running the script locally. The script configures Docker for Artifact Registry, builds the image, pushes the image, and deploys it to Cloud Run.
+
+## Deployment Failure Points
+
+Deployment can fail before application startup if:
+
+- Required GitHub variables or secrets are missing.
+- The Workload Identity Federation provider is misconfigured.
+- The deployment service account cannot be impersonated by GitHub Actions.
+- Required Google Cloud APIs are disabled.
+- The Artifact Registry repository does not exist in the configured region.
+- Docker authentication to Artifact Registry fails.
+- The service Docker image fails to build.
+- The deployment service account lacks Artifact Registry write permissions.
+- The deployment service account lacks Cloud Run deployment permissions.
+- The Cloud Run service or region values do not match provisioned resources.
+
+Deployment can fail after Cloud Run accepts a revision if:
+
+- Runtime environment variables or secrets are missing.
+- The runtime service account lacks required permissions.
+- The container fails to start or bind to the expected port.
+- Health checks or startup behavior fail.
+- Logs reveal runtime configuration or dependency errors.
+
+## Rollback Strategy
+
+Cloud Run keeps revision history for deployed services. If a deployment causes operational issues:
+
+1. Identify the last known good Cloud Run revision.
+2. Shift traffic back to that revision using Cloud Run traffic management.
+3. Confirm service health and logs after traffic is restored.
+4. Keep the failed revision available for investigation unless it contains a security issue.
+5. Revert or fix the source change, then deploy a new traceable image tag.
+
+Rollback should use Cloud Run revisions, not a moving `latest` image tag. Production rollback decisions should record the failed image tag, restored revision, operator, and reason.
 
 ## Environments
 
@@ -257,6 +360,4 @@ Production must not rely on local-only assumptions or untracked configuration.
 
 ## Future Automation
 
-Future CI/CD work may automate image build, Artifact Registry publishing, Cloud Run deployment, deployment verification, and rollback support.
-
-Until that automation is introduced, deployments remain manual and must be initiated intentionally by an operator.
+Future CI/CD work may add deployment verification gates, environment approvals, automated rollback assistance, and infrastructure provisioning.
