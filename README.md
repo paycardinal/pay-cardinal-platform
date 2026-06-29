@@ -27,5 +27,12 @@ Contributions should follow repository conventions for readability, consistency,
 ## Documentation
 The documentation in this repository describes the architecture, standards, security posture, deployment model, and repository guidance. These materials support alignment across platform teams and future contributors.
 
+## Manual Deployment
+Cloud Run deployment conventions are documented in `docs/INFRASTRUCTURE.md`.
+
+Manual deployment uses the configurable helper script at `scripts/deploy.sh`. The script builds a Docker image, tags it for Artifact Registry, pushes the image, and deploys it to Cloud Run after the operator supplies the correct project, region, service, repository, and image values.
+
+Future CI/CD work is expected to automate deployment, verification, and rollback workflows. No automatic deployment is configured in this repository yet.
+
 ## Roadmap
 The roadmap focuses on expanding reusable platform capabilities, strengthening governance, and evolving the repository into a dependable foundation for future Pay Cardinal modules.
