@@ -21,18 +21,22 @@ This platform is built around modern, cloud-friendly tooling and standards appro
 ## Current Services
 The repository includes the initial platform services and supporting assets that form the foundation for shared integrations and reusable capabilities. Services are treated as independently deployable components within the platform.
 
+## Current Status
+- Platform Foundation complete.
+- Google Cloud Foundation complete.
+- Secret Manager integration complete.
+- Sprint 3.2 is the active implementation sprint.
+
 ## Development Standards
 Contributions should follow repository conventions for readability, consistency, and cross-platform compatibility. Shared standards help maintain a reliable developer experience and sustainable long-term evolution.
 
 ## Documentation
 The documentation in this repository describes the architecture, standards, security posture, deployment model, and repository guidance. These materials support alignment across platform teams and future contributors.
 
-## Manual Deployment
-Cloud Run deployment conventions are documented in `docs/INFRASTRUCTURE.md`.
+## Deployment
+Cloud Run deployment conventions are documented in `docs/DEPLOYMENT.md`.
 
-Manual deployment uses the configurable helper script at `scripts/deploy.sh`. The script builds a Docker image, tags it for Artifact Registry, pushes the image, and deploys it to Cloud Run after the operator supplies the correct project, region, service, repository, and image values.
-
-Future CI/CD work is expected to automate deployment, verification, and rollback workflows. No automatic deployment is configured in this repository yet.
+Deployments are automated through GitHub Actions, publish service images to Artifact Registry, deploy to Cloud Run, and verify deployment health.
 
 ## Roadmap
 The roadmap focuses on expanding reusable platform capabilities, strengthening governance, and evolving the repository into a dependable foundation for future Pay Cardinal modules.

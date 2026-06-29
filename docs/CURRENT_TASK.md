@@ -11,19 +11,25 @@
 
 ## Current Sprint
 
-**Sprint 3.1 – Secret Manager Integration**
+**Sprint 3.2 – Elavon SFTP Connectivity**
 
 ---
 
 ## Current Objective
 
-Implement the foundation for securely retrieving the Elavon SSH private key from Google Secret Manager.
+Establish an authenticated SSH/SFTP connection to the Elavon File Gateway using the SSH private key retrieved from Google Secret Manager.
 
-This sprint establishes the secure credential retrieval layer that will be used by the Elavon File Gateway.
+The goal of this sprint is to validate secure connectivity only.
+
+No file downloads, uploads, or business processing are included.
 
 ---
 
 ## Current State
+
+### Completed Sprints
+
+- Sprint 3.1 – Secret Manager Integration.
 
 ### Completed
 
@@ -34,11 +40,9 @@ This sprint establishes the secure credential retrieval layer that will be used 
 - GitHub Actions deployment configured.
 - Workload Identity Federation configured.
 - Runtime service account configured.
-- Secret Manager baseline established.
-
-### In Progress
-
-- Secret Manager integration.
+- Secret Manager integration complete.
+- Secret retrieval validated.
+- Authenticated Cloud Run health endpoint validated.
 
 ---
 
@@ -46,29 +50,35 @@ This sprint establishes the secure credential retrieval layer that will be used 
 
 ### In Scope
 
-- Read the Elavon SSH private key from Google Secret Manager.
-- Verify successful secret retrieval.
-- Implement appropriate error handling.
-- Log success and failure without exposing secret contents.
-- Use the Cloud Run runtime service account.
+- Load SSH private key from Secret Manager.
+- Create SSH/SFTP client.
+- Authenticate with Elavon.
+- Verify remote connectivity.
+- Gracefully disconnect.
+- Structured logging.
+- Error handling.
 
 ### Out of Scope
 
-- SFTP connectivity.
+- File listing.
 - File downloads.
 - Google Drive uploads.
 - Cloud Scheduler.
-- Elavon business logic.
+- File processing.
+- Business logic.
 
 ---
 
 ## Acceptance Criteria
 
-- Secret Manager integration is functional.
-- No secret values are logged.
-- Errors are handled gracefully.
-- Runtime service account uses least-privilege access.
-- Service builds and deploys successfully through GitHub Actions.
+- Secret retrieved successfully from Secret Manager.
+- SSH authentication succeeds.
+- SFTP connection established.
+- Connection closes cleanly.
+- Errors handled gracefully.
+- CI pipeline succeeds.
+- Deployment pipeline succeeds.
+- Cloud Run deployment remains healthy.
 
 ---
 
@@ -109,12 +119,11 @@ This sprint establishes the secure credential retrieval layer that will be used 
 
 ## Next Sprint Preview
 
-**Sprint 3.2 – Elavon SFTP Connectivity**
+**Sprint 3.3 – Remote Directory Discovery**
 
 Planned objectives:
 
-- Retrieve SSH key from Secret Manager.
-- Establish authenticated SFTP connection.
-- Verify remote connectivity.
+- List available remote files.
+- Capture metadata only.
 - No file downloads.
 - No business processing.

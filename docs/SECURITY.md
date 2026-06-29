@@ -22,10 +22,14 @@ This document defines the security architecture and operational security standar
 - Each Cloud Run service should use its own service account when practical.
 - Review IAM permissions regularly.
 - Avoid shared administrative accounts.
+- Runtime identity must use least-privilege IAM.
+- GitHub authenticates to Google Cloud using Workload Identity Federation.
 
 ## Secret Management
 
 Production secrets must be stored in Google Secret Manager.
+Secret Manager is the only approved source for runtime credentials.
+Runtime credentials must be retrieved at execution time.
 
 Examples include:
 
@@ -43,6 +47,8 @@ Secrets must never be:
 - hardcoded in source code
 - stored in documentation
 - written to logs
+
+Secrets must never be logged.
 
 ## Service Authentication
 

@@ -45,6 +45,9 @@ Developer
 
 Deployment automation should validate builds before release.
 
+Cloud Run deployments use GitHub Actions with Workload Identity Federation.
+Deployments are keyless and must not use JSON service account keys.
+
 ## Service Deployment Requirements
 
 Each Platform service should provide:
@@ -71,6 +74,10 @@ Examples include:
 - API endpoints
 
 Secrets must be retrieved from Google Secret Manager.
+
+Runtime configuration is controlled through GitHub Repository Variables.
+
+The Elavon File Gateway runtime service account is `pc-elavon-runtime`.
 
 ## Environments
 
