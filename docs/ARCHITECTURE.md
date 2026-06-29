@@ -191,6 +191,14 @@ Infrastructure definitions may include:
 
 Infrastructure should be reusable, consistent, and separated from service business code.
 
+## Primary Deployment Region
+
+The primary deployment region for Pay Cardinal Platform is us-east1 (South Carolina).
+
+Regional Platform resources should be deployed to us-east1 unless an Architecture Decision Record (ADR) explicitly approves another region. This includes Platform services, Artifact Registry repositories, and Cloud Scheduler jobs that require regional placement.
+
+Global Google Cloud services such as IAM, Secret Manager, Cloud Logging, and Cloud Monitoring remain global and do not require regional selection. Maintaining a single primary deployment region simplifies operations, reduces latency variability, and provides a consistent deployment model for Platform resources.
+
 ## Deployment Model
 
 Cloud Run is the deployment target for Platform services.

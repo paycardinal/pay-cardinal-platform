@@ -88,6 +88,22 @@ Cloud Scheduler is the standard mechanism for recurring Platform jobs.
 
 Scheduler should invoke Cloud Run services using authenticated requests.
 
+## Regional Deployment Standard
+
+The default regional deployment standard for Platform resources is us-east1 (South Carolina).
+
+| Resource | Standard |
+| --- | --- |
+| Cloud Run | us-east1 |
+| Artifact Registry | us-east1 |
+| Cloud Scheduler | us-east1 |
+| Secret Manager | Global |
+| IAM | Global |
+| Cloud Logging | Global |
+| Cloud Monitoring | Global |
+
+All future regional Platform resources should default to us-east1 unless Architecture approves an exception.
+
 ## Health and Monitoring
 
 Every deployed service should support operational monitoring.

@@ -98,6 +98,30 @@ A single implementation reduces duplication, simplifies maintenance, and provide
 
 ---
 
+---
+
+## ADR-007: Primary Deployment Region
+
+**Status:** Accepted
+
+### Decision
+
+The primary deployment region for the Pay Cardinal Platform is us-east1 (South Carolina).
+
+Regional Platform resources—including Cloud Run services, Artifact Registry repositories, and Cloud Scheduler jobs—will use us-east1 by default.
+
+Global Google Cloud services such as IAM, Secret Manager, Cloud Logging, and Cloud Monitoring remain global.
+
+### Rationale
+
+- Establishes a consistent deployment standard.
+- Simplifies infrastructure management.
+- Reduces operational complexity.
+- Provides low-latency access for the primary operating region.
+- Creates a repeatable deployment pattern for all future Platform services.
+
+---
+
 ## Future ADRs
 
 Future architecture decisions should follow this format:
