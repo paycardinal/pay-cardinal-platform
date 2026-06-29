@@ -13,6 +13,7 @@ permissions:
 env:
   SERVICE_DIR: services/elavon-file-gateway
   IMAGE_NAME: elavon-file-gateway
+  RUNTIME_SERVICE_ACCOUNT: pc-elavon-runtime@disco-aegis-436919-n8.iam.gserviceaccount.com
 
 jobs:
   deploy:
@@ -52,4 +53,5 @@ jobs:
             --project "${{ vars.GCP_PROJECT_ID }}" \
             --region "${{ vars.GCP_REGION }}" \
             --image "${IMAGE_URI}" \
+            --service-account "${RUNTIME_SERVICE_ACCOUNT}" \
             --platform managed
