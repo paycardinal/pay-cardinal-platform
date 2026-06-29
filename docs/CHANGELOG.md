@@ -10,8 +10,11 @@ The format is based on Keep a Changelog.
 
 ### Added
 - Completed Sprint 3.2 – Elavon SFTP Connectivity.
-- Added Elavon TEST SFTP readiness connectivity validation using Secret Manager-provided SSH private key and SFTP user ID.
-- Added safe readiness reason codes for Secret Manager and SFTP connectivity failures.
+- Validated Elavon TEST SFTP authentication.
+- Validated retrieval of SSH private key from Secret Manager.
+- Validated retrieval of SFTP User ID from Secret Manager.
+- Added `/ready` validation for Secret Manager and SFTP connectivity.
+- Confirmed clean SFTP disconnect behavior.
 - Completed Sprint 3.1 – Secret Manager Integration.
 - Integrated Google Secret Manager for secure runtime credential retrieval.
 - Configured dedicated Cloud Run runtime service account (`pc-elavon-runtime`).
@@ -20,6 +23,7 @@ The format is based on Keep a Changelog.
 - Validated authenticated Cloud Run `/health` endpoint.
 
 ### Changed
+- Activated Sprint 3.3 – Remote Directory Discovery as the active implementation sprint.
 - Updated Elavon File Gateway readiness checks to validate Secret Manager access, authenticated SFTP connection establishment, and clean disconnect.
 - Updated deployment automation to pass Elavon TEST SFTP runtime configuration through Cloud Run environment variables.
 - Updated deployment, security, and platform documentation to reflect the current production foundation.

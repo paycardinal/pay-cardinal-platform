@@ -79,6 +79,16 @@ Runtime configuration is controlled through GitHub Repository Variables.
 
 The Elavon File Gateway runtime service account is `pc-elavon-runtime`.
 
+For Sprint 3.2, Elavon TEST SFTP runtime configuration is supplied through GitHub Repository Variables:
+
+- `ELAVON_SFTP_ENV`
+- `ELAVON_SFTP_HOST`
+- `ELAVON_SFTP_PORT`
+- `ELAVON_SFTP_USER_ID_SECRET_NAME`
+- `ELAVON_SSH_PRIVATE_KEY_SECRET_NAME`
+
+Secret values are not stored in GitHub Repository Variables and must not be included in documentation.
+
 ## Environments
 
 As the Platform grows, maintain separate environments such as:

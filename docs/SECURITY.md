@@ -37,6 +37,7 @@ Examples include:
 - OAuth credentials
 - SSH private keys
 - SFTP credentials
+- SFTP User IDs
 - Database credentials
 - Webhook secrets
 - Third-party integration credentials
@@ -49,6 +50,8 @@ Secrets must never be:
 - written to logs
 
 Secrets must never be logged.
+
+Elavon TEST SFTP credentials are runtime secrets. The SFTP User ID and SSH private key must be stored in Google Secret Manager and retrieved only at runtime. The SFTP host, port, and environment are runtime configuration values, not secrets.
 
 ## Service Authentication
 

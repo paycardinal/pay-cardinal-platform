@@ -11,17 +11,15 @@
 
 ## Current Sprint
 
-**Sprint 3.2 – Elavon SFTP Connectivity**
+**Sprint 3.3 – Remote Directory Discovery**
 
 ---
 
 ## Current Objective
 
-Establish an authenticated SSH/SFTP connection to the Elavon File Gateway using the SSH private key retrieved from Google Secret Manager.
+Discover available files in the Elavon TEST `/Inbox` directory by listing remote file metadata only.
 
-The goal of this sprint is to validate secure connectivity only.
-
-No file downloads, uploads, or business processing are included.
+This sprint must not download, rename, delete, move, or process files.
 
 ---
 
@@ -29,6 +27,7 @@ No file downloads, uploads, or business processing are included.
 
 ### Completed Sprints
 
+- Sprint 3.2 – Elavon SFTP Connectivity complete.
 - Sprint 3.1 – Secret Manager Integration.
 
 ### Completed
@@ -42,6 +41,9 @@ No file downloads, uploads, or business processing are included.
 - Runtime service account configured.
 - Secret Manager integration complete.
 - Secret retrieval validated.
+- Elavon TEST SFTP authentication validated.
+- SFTP connection established and disconnected cleanly.
+- `/ready` validates Secret Manager and Elavon TEST connectivity.
 - Authenticated Cloud Run health endpoint validated.
 
 ---
@@ -50,35 +52,45 @@ No file downloads, uploads, or business processing are included.
 
 ### In Scope
 
-- Load SSH private key from Secret Manager.
-- Create SSH/SFTP client.
-- Authenticate with Elavon.
-- Verify remote connectivity.
-- Gracefully disconnect.
+- Connect to Elavon TEST SFTP using existing Secret Manager credentials.
+- Change to `/Inbox`.
+- List available remote files.
+- Capture safe metadata only:
+  - filename
+  - size
+  - last modified timestamp
+- Return safe readiness or discovery status.
 - Structured logging.
 - Error handling.
+- Clean disconnect.
 
 ### Out of Scope
 
-- File listing.
 - File downloads.
-- Google Drive uploads.
+- File uploads.
+- Google Drive integration.
 - Cloud Scheduler.
 - File processing.
 - Business logic.
+- File deletion.
+- File renaming.
+- Folder creation.
 
 ---
 
 ## Acceptance Criteria
 
-- Secret retrieved successfully from Secret Manager.
-- SSH authentication succeeds.
-- SFTP connection established.
-- Connection closes cleanly.
-- Errors handled gracefully.
+- Existing Secret Manager integration remains functional.
+- Existing Elavon TEST SFTP connection remains functional.
+- `/Inbox` directory can be accessed.
+- Remote file metadata can be listed safely.
+- No files are downloaded.
+- No files are modified.
+- No files are deleted.
 - CI pipeline succeeds.
 - Deployment pipeline succeeds.
-- Cloud Run deployment remains healthy.
+- Cloud Run remains healthy.
+- Logs contain no credentials or secret values.
 
 ---
 
@@ -119,11 +131,11 @@ No file downloads, uploads, or business processing are included.
 
 ## Next Sprint Preview
 
-**Sprint 3.3 – Remote Directory Discovery**
+**Sprint 3.4 – File Download Pipeline**
 
 Planned objectives:
 
-- List available remote files.
-- Capture metadata only.
-- No file downloads.
-- No business processing.
+- Download eligible files from Elavon TEST `/Inbox`.
+- Store files temporarily or pass them to the next processing stage.
+- Do not upload to Google Drive yet.
+- Do not process business contents yet.

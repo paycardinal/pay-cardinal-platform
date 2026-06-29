@@ -25,7 +25,8 @@ The repository includes the initial platform services and supporting assets that
 - Platform Foundation complete.
 - Google Cloud Foundation complete.
 - Secret Manager integration complete.
-- Sprint 3.2 is the active implementation sprint.
+- Elavon TEST SFTP connectivity complete.
+- Sprint 3.3 – Remote Directory Discovery active.
 
 ## Development Standards
 Contributions should follow repository conventions for readability, consistency, and cross-platform compatibility. Shared standards help maintain a reliable developer experience and sustainable long-term evolution.
