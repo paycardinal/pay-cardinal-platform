@@ -13,13 +13,6 @@ permissions:
 env:
   SERVICE_DIR: services/elavon-file-gateway
   IMAGE_NAME: elavon-file-gateway
-  RUNTIME_SERVICE_ACCOUNT: pc-elavon-runtime@disco-aegis-436919-n8.iam.gserviceaccount.com
-  CLOUD_RUN_MEMORY: 512Mi
-  CLOUD_RUN_CPU: "1"
-  CLOUD_RUN_CONCURRENCY: "80"
-  CLOUD_RUN_TIMEOUT: 300
-  CLOUD_RUN_MAX_INSTANCES: "20"
-  CLOUD_RUN_INGRESS: all
 
 jobs:
   deploy:
@@ -59,11 +52,11 @@ jobs:
             --project "${{ vars.GCP_PROJECT_ID }}" \
             --region "${{ vars.GCP_REGION }}" \
             --image "${IMAGE_URI}" \
-            --service-account "${RUNTIME_SERVICE_ACCOUNT}" \
-            --memory "${CLOUD_RUN_MEMORY}" \
-            --cpu "${CLOUD_RUN_CPU}" \
-            --concurrency "${CLOUD_RUN_CONCURRENCY}" \
-            --timeout "${CLOUD_RUN_TIMEOUT}" \
-            --max-instances "${CLOUD_RUN_MAX_INSTANCES}" \
-            --ingress "${CLOUD_RUN_INGRESS}" \
+            --service-account "${{ vars.CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT }}" \
+            --memory "${{ vars.CLOUD_RUN_MEMORY }}" \
+            --cpu "${{ vars.CLOUD_RUN_CPU }}" \
+            --concurrency "${{ vars.CLOUD_RUN_CONCURRENCY }}" \
+            --timeout "${{ vars.CLOUD_RUN_TIMEOUT }}" \
+            --max-instances "${{ vars.CLOUD_RUN_MAX_INSTANCES }}" \
+            --ingress "${{ vars.CLOUD_RUN_INGRESS }}" \
             --platform managed
