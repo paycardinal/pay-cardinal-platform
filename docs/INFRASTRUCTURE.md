@@ -58,15 +58,34 @@ Region selection should consider:
 
 All related runtime resources for a service, including Artifact Registry repositories and Secret Manager secrets, should be located or replicated consistently with the selected environment strategy.
 
+Artifact Registry repositories should use the same primary region as the Cloud Run services that consume their images unless an explicit multi-region strategy is approved.
+
+Initial convention:
+
+```text
+us-central1
+```
+
+Regional values should be supplied through deployment configuration or operator input. Scripts and workflow templates must not hardcode Production-only assumptions.
+
 ## Artifact Registry Naming Convention
 
 Container images should be stored in Google Artifact Registry.
 
-Artifact Registry repositories should be environment-specific or project-specific. A recommended repository name is:
+Artifact Registry repositories should be environment-specific or project-specific. For the initial platform shape, each Google Cloud environment project should contain one Docker repository for platform service images.
+
+Recommended repository name:
 
 ```text
 platform-services
 ```
+
+Repository names should:
+
+- Use lowercase kebab-case.
+- Describe the image grouping, not an individual runtime environment secret or customer.
+- Remain stable across services.
+- Avoid branch names, personal names, or temporary labels.
 
 Image names should match the service name:
 
@@ -80,6 +99,12 @@ The full image path follows this pattern:
 REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY_NAME/IMAGE_NAME:TAG
 ```
 
+Example:
+
+```text
+us-central1-docker.pkg.dev/pay-cardinal-platform-dev/platform-services/elavon-file-gateway:abc1234
+```
+
 Tags should be traceable to source control. Recommended tag values include:
 
 - A short Git commit SHA.
@@ -87,6 +112,47 @@ Tags should be traceable to source control. Recommended tag values include:
 - A manually supplied deployment label for non-production testing.
 
 Avoid relying on `latest` for Production deployment traceability.
+
+## Artifact Registry Structure
+
+The expected Artifact Registry structure is:
+
+```text
+PROJECT_ID
+  Artifact Registry repository: platform-services
+    Image: elavon-file-gateway
+      Tags: short SHA, release version, or approved deployment label
+```
+
+As more services are added, they should publish images into the same environment repository unless operational scale, access boundaries, or compliance requirements justify separate repositories.
+
+## Image Naming Convention
+
+Image names should align with repository service directory names and Cloud Run service names.
+
+Preferred mapping:
+
+```text
+services/elavon-file-gateway
+  -> Artifact Registry image: elavon-file-gateway
+  -> Cloud Run service: elavon-file-gateway
+```
+
+This keeps deployment logs, image references, and service ownership easy to correlate.
+
+## Container Tagging Strategy
+
+Every pushed container image should have a tag that can be traced back to source control or an approved release event.
+
+Recommended tags:
+
+- Short Git SHA for continuous delivery candidates.
+- Semantic version or release label for reviewed releases.
+- Environment-specific validation label for manual non-production testing.
+
+Production deployments should use immutable, reviewable tags. Production should not depend on a moving `latest` tag.
+
+When a deployment system adds multiple tags, at least one tag must identify the exact source revision that produced the image.
 
 ## Runtime Environment Variable Strategy
 

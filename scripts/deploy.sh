@@ -19,6 +19,13 @@ SERVICE_DIR="${SERVICE_DIR:-services/elavon-file-gateway}"
 # Fully qualified Artifact Registry image path.
 IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY_NAME}/${IMAGE_NAME}:${IMAGE_TAG}"
 
+# Authentication occurs before build and push operations.
+# For manual use, authenticate with Google Cloud outside this script, for example:
+#   gcloud auth login
+#   gcloud auth configure-docker "${REGION}-docker.pkg.dev"
+# Future GitHub Actions automation should authenticate with Workload Identity
+# Federation and short-lived credentials instead of service account keys.
+
 echo "Building Docker image for ${SERVICE_NAME}..."
 
 # Build the Docker image from the service directory.
@@ -28,17 +35,19 @@ docker build \
 
 echo "Tagging image as ${IMAGE_URI}..."
 
-# Tag the local image for Google Artifact Registry.
+# Artifact Registry is used as the container image destination.
+# Tag the local image using the fully qualified Artifact Registry image path.
 docker tag "${IMAGE_NAME}:${IMAGE_TAG}" "${IMAGE_URI}"
 
 echo "Pushing image to Artifact Registry..."
 
-# Push the tagged image to Artifact Registry.
+# Push the tagged image to Artifact Registry after Docker authentication has
+# been configured for the selected region.
 docker push "${IMAGE_URI}"
 
 echo "Deploying image to Cloud Run..."
 
-# Deploy the image to Cloud Run.
+# Cloud Run deployment occurs here.
 # Runtime environment variables and secrets should be supplied explicitly by the
 # operator or through future deployment automation.
 gcloud run deploy "${SERVICE_NAME}" \
