@@ -120,6 +120,32 @@ Global Google Cloud services such as IAM, Secret Manager, Cloud Logging, and Clo
 
 ---
 
+## ADR-008: Payments365 Transaction Storage Strategy
+
+**Status:** Accepted
+
+### Decision
+
+Payments365 transaction files will be archived in Cloud Storage.
+
+Transaction records will be normalized into Cloud SQL PostgreSQL.
+
+Google Drive will only store user-facing generated documents.
+
+### Rationale
+
+Operational reporting, billing, merchant search, and statement generation require indexed relational data rather than repeated file parsing.
+
+### Consequences
+
+- Improved performance
+- Lower operational complexity
+- Scalable reporting
+- Supports future analytics
+- Supports future BigQuery integration if needed
+
+---
+
 ## Future ADRs
 
 Future architecture decisions should follow this format:

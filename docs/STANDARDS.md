@@ -64,6 +64,15 @@ This standard applies to all platform services and is intended to ensure consist
 
 ---
 
+## Transaction Data Standard
+
+- Raw operational files must be archived in Cloud Storage.
+- Operational transaction data must be normalized into Cloud SQL.
+- Google Drive must never be used as the operational transaction datastore.
+- Generated documents may be stored in Google Drive.
+
+---
+
 ## Documentation Standards
 
 - `docs/CURRENT_TASK.md` defines the active sprint contract.

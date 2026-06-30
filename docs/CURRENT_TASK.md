@@ -19,6 +19,8 @@
 
 Discover available files in the Elavon TEST `/Inbox` directory by listing remote file metadata only.
 
+The remote directory being explored contains Payments365 daily transaction files delivered through Elavon Secure File Transfer.
+
 This sprint must not download, rename, delete, move, or process files.
 
 ---

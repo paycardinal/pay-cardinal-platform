@@ -3,6 +3,14 @@
 ## Overview
 Pay Cardinal Platform is the shared technical foundation for the broader Pay Cardinal program. It provides a consistent, secure, and maintainable environment for capabilities that can be reused across modules and future initiatives.
 
+The platform ingests Payments365 transaction files delivered through Elavon Secure File Transfer. Elavon provides the transport layer, while Payments365 transaction data is the business domain.
+
+The platform storage model separates operational data from generated documents:
+
+- Cloud Storage stores raw Payments365 daily files.
+- Cloud SQL stores normalized transaction data.
+- Google Drive stores generated documents such as statement PDFs, agreements, exported reports, and customer-accessible documents.
+
 ## Mission
 The mission of this repository is to establish a reusable platform layer for common capabilities, operational consistency, and governance while keeping module-specific business logic separate from shared platform responsibilities.
 

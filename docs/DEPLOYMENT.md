@@ -22,6 +22,14 @@ The standard deployment target for all Platform services is Google Cloud Run.
 
 Each service is responsible for its own deployment lifecycle and runtime configuration.
 
+Future production deployment for Payments365 daily processing will include:
+
+- Cloud Storage for the immutable archive of original Payments365 daily files
+- Cloud SQL PostgreSQL for normalized operational transaction records
+- Cloud Run Ingestion Service for retrieving Payments365 files delivered through Elavon Secure File Transfer
+
+Google Drive is not part of the operational ingestion pipeline and must not be used as the transaction datastore.
+
 ## Source Control
 
 - GitHub is the source of truth.

@@ -23,6 +23,10 @@ The format is based on Keep a Changelog.
 - Validated authenticated Cloud Run `/health` endpoint.
 
 ### Changed
+- Clarified the approved Payments365 ingestion architecture.
+- Identified Payments365 as the transaction domain and Elavon Secure File Transfer as the transport layer.
+- Adopted Cloud Storage as the raw archive strategy for Payments365 daily files.
+- Adopted Cloud SQL PostgreSQL as the operational transaction datastore.
 - Activated Sprint 3.3 – Remote Directory Discovery as the active implementation sprint.
 - Updated Elavon File Gateway readiness checks to validate Secret Manager access, authenticated SFTP connection establishment, and clean disconnect.
 - Updated deployment automation to pass Elavon TEST SFTP runtime configuration through Cloud Run environment variables.

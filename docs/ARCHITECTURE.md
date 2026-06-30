@@ -157,6 +157,27 @@ Initial platform services may include:
 
 Services should not import business logic from consuming modules.
 
+The Cloud Run service currently named `elavon-file-gateway` retrieves daily Payments365 transaction files through Elavon's Secure File Transfer service. Elavon is the transport mechanism. Payments365 transaction data is the business domain. The service name may remain unchanged until Architecture approves an implementation rename.
+
+## Payments365 Daily Processing
+
+The approved long-term Payments365 ingestion architecture is:
+
+```text
+Elavon SFTP
+  -> Cloud Run Ingestion Service
+  -> Cloud Storage (raw immutable archive)
+  -> Payments365 Parser
+  -> Cloud SQL PostgreSQL
+  -> Merchant Search
+  -> Billing
+  -> Statements
+  -> Residual Reporting
+  -> Operational Reporting
+```
+
+The ingestion layer retrieves original daily files from Elavon SFTP and archives them before parsing. Parsed Payments365 transaction records are normalized into Cloud SQL PostgreSQL for operational use by search, billing, statements, residual reporting, and reporting modules.
+
 ## Shared Libraries
 
 Shared libraries belong under `/shared`.
@@ -252,19 +273,37 @@ Secrets must never be committed to Git.
 
 Services should retrieve secrets at runtime using least-privilege IAM.
 
-## Document Storage
+## Storage Responsibilities
 
-Google Drive is the initial document repository for shared documents and integration files.
+### Cloud Storage
 
-The recommended document flow is:
+Cloud Storage is responsible for:
 
-```text
-Platform service receives or retrieves file
-  -> Platform validates file metadata
-  -> Platform stores file in controlled Google Drive folder
-  -> Platform records file metadata and status
-  -> consuming module references the stored file
-```
+- Immutable archive of original Payments365 daily files
+- Audit retention
+- Disaster recovery
+
+### Cloud SQL PostgreSQL
+
+Cloud SQL PostgreSQL is responsible for:
+
+- Normalized transaction records
+- Merchant transaction search
+- Billing
+- Statement generation
+- Residual reporting
+- Operational reporting
+
+### Google Drive
+
+Google Drive is responsible for human-facing documents only, including:
+
+- Statement PDFs
+- Agreements
+- Exported reports
+- Customer-accessible documents
+
+Google Drive must not be used as the operational transaction datastore.
 
 Modules should not create duplicate document storage patterns when a shared Platform document service is available.
 
