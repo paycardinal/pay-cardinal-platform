@@ -62,7 +62,10 @@ export const getMissingSecretConfig = (config: ServiceConfig): string[] => {
     missing.push("GCP_PROJECT_ID");
   }
 
-  if (config.elavonSftpEnvironment !== "test") {
+  if (
+    config.elavonSftpEnvironment !== "test" &&
+    config.elavonSftpEnvironment !== "production"
+  ) {
     missing.push("ELAVON_SFTP_ENV");
   }
 
