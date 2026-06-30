@@ -9,6 +9,8 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Added Sprint 3.3 `/discover/inbox` endpoint for metadata-only Elavon TEST `/Inbox` discovery.
+- Added `/Inbox` availability validation to Elavon File Gateway readiness checks without returning file metadata.
 - Completed Sprint 3.2 – Elavon SFTP Connectivity.
 - Validated Elavon TEST SFTP authentication.
 - Validated retrieval of SSH private key from Secret Manager.
