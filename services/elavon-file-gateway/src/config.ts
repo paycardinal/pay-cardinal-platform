@@ -7,6 +7,7 @@ export type ServiceConfig = {
   elavonSftpPort?: number;
   elavonSftpUserIdSecretName?: string;
   elavonSshPrivateKeySecretName?: string;
+  payments365RawBucket?: string;
 };
 
 const parsePort = (value: string | undefined, defaultPort: number): number => {
@@ -51,6 +52,7 @@ export const getConfig = (): ServiceConfig => ({
   elavonSshPrivateKeySecretName: readOptionalEnv(
     "ELAVON_SSH_PRIVATE_KEY_SECRET_NAME",
   ),
+  payments365RawBucket: readOptionalEnv("PAYMENTS365_RAW_BUCKET"),
 });
 
 export const getMissingSecretConfig = (config: ServiceConfig): string[] => {
@@ -78,6 +80,16 @@ export const getMissingSecretConfig = (config: ServiceConfig): string[] => {
 
   if (!config.elavonSshPrivateKeySecretName) {
     missing.push("ELAVON_SSH_PRIVATE_KEY_SECRET_NAME");
+  }
+
+  return missing;
+};
+
+export const getMissingArchiveConfig = (config: ServiceConfig): string[] => {
+  const missing = getMissingSecretConfig(config);
+
+  if (!config.payments365RawBucket) {
+    missing.push("PAYMENTS365_RAW_BUCKET");
   }
 
   return missing;

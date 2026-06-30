@@ -11,17 +11,17 @@
 
 ## Current Sprint
 
-**Sprint 3.3 – Remote Directory Discovery**
+**Sprint 3.4 – TEST File Download Pipeline**
 
 ---
 
 ## Current Objective
 
-Discover available files in the Elavon TEST `/Inbox` directory by listing remote file metadata only.
+Download one operator-approved Payments365 TEST file from the Elavon TEST `/Inbox` directory and archive the unchanged raw bytes in Cloud Storage.
 
 The remote directory being explored contains Payments365 daily transaction files delivered through Elavon Secure File Transfer.
 
-This sprint must not download, rename, delete, move, or process files.
+This sprint must not parse files, write Cloud SQL, use Google Drive, use production SFTP, schedule jobs, or rename, delete, move, or create folders on Elavon SFTP.
 
 ---
 
@@ -31,6 +31,7 @@ This sprint must not download, rename, delete, move, or process files.
 
 - Sprint 3.2 – Elavon SFTP Connectivity complete.
 - Sprint 3.1 – Secret Manager Integration.
+- Sprint 3.3 – Remote Directory Discovery complete.
 
 ### Completed
 
@@ -47,6 +48,7 @@ This sprint must not download, rename, delete, move, or process files.
 - SFTP connection established and disconnected cleanly.
 - `/ready` validates Secret Manager and Elavon TEST connectivity.
 - Authenticated Cloud Run health endpoint validated.
+- `/discover/inbox` lists Elavon TEST `/Inbox` file metadata only.
 
 ---
 
@@ -54,28 +56,39 @@ This sprint must not download, rename, delete, move, or process files.
 
 ### In Scope
 
-- Connect to Elavon TEST SFTP using existing Secret Manager credentials.
-- Change to `/Inbox`.
-- List available remote files.
-- Capture safe metadata only:
-  - filename
-  - size
-  - last modified timestamp
-- Return safe readiness or discovery status.
+- Accept `POST /archive` requests for `environment: "test"` only.
+- Validate requested filenames before any SFTP download.
+- Require the operator to discover candidate files with `GET /discover/inbox` first.
+- Perform a fresh Elavon TEST `/Inbox` listing before download.
+- Download exactly the selected `/Inbox/<filename>` only when confirmed by the fresh listing.
+- Calculate SHA-256 from the exact downloaded raw bytes.
+- Archive unchanged raw bytes to Cloud Storage bucket `pc-payments365-raw`.
+- Use canonical object layout `test/YYYY/MM/<original-filename>`.
+- Attach archive object metadata:
+  - `source=elavon-sftp`
+  - `processor=payments365`
+  - `environment=test`
+  - `downloadedAt=<ISO-8601>`
+  - `originalFilename=<filename>`
+  - `sha256=<checksum>`
+- Verify uploaded object size matches downloaded size.
+- Return archive metadata only.
 - Structured logging.
 - Error handling.
 - Clean disconnect.
 
 ### Out of Scope
 
-- File downloads.
-- File uploads.
+- Production SFTP usage.
+- Production archive writes.
+- File parsing.
+- Cloud SQL writes.
 - Google Drive integration.
 - Cloud Scheduler.
-- File processing.
 - Business logic.
 - File deletion.
 - File renaming.
+- File moving.
 - Folder creation.
 
 ---
@@ -86,13 +99,27 @@ This sprint must not download, rename, delete, move, or process files.
 - Existing Elavon TEST SFTP connection remains functional.
 - `/Inbox` directory can be accessed.
 - Remote file metadata can be listed safely.
-- No files are downloaded.
+- `POST /archive` accepts only `environment: "test"`.
+- `POST /archive` rejects missing or unsafe filenames.
+- Archive flow performs a fresh SFTP `/Inbox` listing before download.
+- Filename must be confirmed in the fresh listing before download.
+- Exactly one approved TEST file is downloaded.
+- Raw file exists at `gs://pc-payments365-raw/test/YYYY/MM/<original-filename>`.
+- Uploaded object size equals downloaded file size.
+- SHA-256 checksum is calculated and returned as lowercase hex.
+- Object metadata is attached.
+- No file contents are returned.
+- No files are parsed.
+- No Cloud SQL writes occur.
+- No Google Drive interaction occurs.
 - No files are modified.
 - No files are deleted.
+- No files are renamed or moved.
 - CI pipeline succeeds.
 - Deployment pipeline succeeds.
 - Cloud Run remains healthy.
 - Logs contain no credentials or secret values.
+- Logs contain no raw file contents.
 
 ---
 
@@ -126,6 +153,11 @@ This sprint must not download, rename, delete, move, or process files.
 - CI pipeline succeeds.
 - Deployment pipeline succeeds.
 - Cloud Run deployment is healthy.
+- `/health` returns 200.
+- `/ready` returns 200.
+- `/discover/inbox` returns metadata only.
+- `POST /archive` validates environment and filename guardrails.
+- Cloud Storage archive object and metadata are validated.
 - Architecture documentation remains accurate.
 - No architecture rules are violated.
 
@@ -133,11 +165,11 @@ This sprint must not download, rename, delete, move, or process files.
 
 ## Next Sprint Preview
 
-**Sprint 3.4 – File Download Pipeline**
+**Sprint 3.5 – Payments365 Raw Archive Operationalization**
 
 Planned objectives:
 
-- Download eligible files from Elavon TEST `/Inbox`.
-- Store files temporarily or pass them to the next processing stage.
-- Do not upload to Google Drive yet.
+- Harden archive validation and IAM.
+- Prepare production-safe streaming implementation.
+- Define parser handoff contract.
 - Do not process business contents yet.

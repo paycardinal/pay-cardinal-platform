@@ -9,7 +9,9 @@ export type SftpFailureReason =
   | "sftp_connection_failed"
   | "sftp_directory_unavailable"
   | "sftp_list_failed"
+  | "sftp_download_failed"
   | "sftp_disconnect_failed"
+  | "file_not_found"
   | "unexpected_error";
 
 export type SftpConnectivityResult =
@@ -31,6 +33,20 @@ export type InboxMetadataResult =
   | {
       ok: true;
       files: InboxFileMetadata[];
+    }
+  | {
+      ok: false;
+      reason: SftpFailureReason;
+    };
+
+export type DownloadedInboxFile = InboxFileMetadata & {
+  rawBytes: Buffer;
+};
+
+export type InboxDownloadResult =
+  | {
+      ok: true;
+      file: DownloadedInboxFile;
     }
   | {
       ok: false;
@@ -65,6 +81,12 @@ const hasRequiredSftpConfig = (config: ServiceConfig): boolean =>
       config.elavonSftpHost &&
       config.elavonSftpPort,
   );
+
+const isSafeRemoteFilename = (filename: string): boolean =>
+  filename.length > 0 &&
+  !filename.includes("/") &&
+  !filename.includes("\\") &&
+  !filename.includes("..");
 
 export class ElavonSftpClient {
   async verifyConnectivity(
@@ -296,6 +318,174 @@ export class ElavonSftpClient {
       logger.error("sftp inbox discovery failed", {
         service: config.serviceName,
         environment: config.elavonSftpEnvironment,
+        reason,
+      });
+
+      result = {
+        ok: false,
+        reason,
+      };
+    }
+
+    if (connected) {
+      const disconnectResult = await this.disconnect(client, config);
+
+      if (!disconnectResult.ok) {
+        return disconnectResult;
+      }
+    }
+
+    return result;
+  }
+
+  async downloadInboxFile(
+    config: ServiceConfig,
+    secrets: SftpConnectionSecrets,
+    filename: string,
+  ): Promise<InboxDownloadResult> {
+    if (!hasRequiredSftpConfig(config)) {
+      return {
+        ok: false,
+        reason: "missing_config",
+      };
+    }
+
+    if (!isSafeRemoteFilename(filename)) {
+      return {
+        ok: false,
+        reason: "file_not_found",
+      };
+    }
+
+    const client = new SftpClient();
+    let connected = false;
+    let operationStage: "directory" | "list" | "download" = "directory";
+    let result: InboxDownloadResult = {
+      ok: false,
+      reason: "unexpected_error",
+    };
+
+    logger.info("sftp inbox archive download started", {
+      service: config.serviceName,
+      environment: config.elavonSftpEnvironment,
+      operation: "archive_download",
+      filename,
+    });
+
+    try {
+      await client.connect({
+        host: config.elavonSftpHost,
+        port: config.elavonSftpPort,
+        username: secrets.userId,
+        privateKey: secrets.privateKey,
+        readyTimeout: 30_000,
+        retries: 0,
+      });
+      connected = true;
+
+      const directoryType = await client.exists(inboxDirectory);
+
+      if (directoryType !== "d") {
+        result = {
+          ok: false,
+          reason: "sftp_directory_unavailable",
+        };
+
+        logger.error("sftp inbox archive download failed", {
+          service: config.serviceName,
+          environment: config.elavonSftpEnvironment,
+          operation: "archive_download",
+          filename,
+          reason: result.reason,
+        });
+      } else {
+        operationStage = "list";
+        const directoryEntries = await client.list(inboxDirectory);
+        const fileEntry = directoryEntries.find(
+          (entry) => entry.type === "-" && entry.name === filename,
+        );
+
+        logger.info("sftp inbox archive fresh listing completed", {
+          service: config.serviceName,
+          environment: config.elavonSftpEnvironment,
+          operation: "archive_download",
+          filename,
+          fileCount: directoryEntries.filter((entry) => entry.type === "-")
+            .length,
+        });
+
+        if (!fileEntry) {
+          result = {
+            ok: false,
+            reason: "file_not_found",
+          };
+
+          logger.warn("sftp inbox archive file not confirmed", {
+            service: config.serviceName,
+            environment: config.elavonSftpEnvironment,
+            operation: "archive_download",
+            filename,
+            reason: result.reason,
+          });
+        } else {
+          operationStage = "download";
+          const remotePath = `${inboxDirectory}/${filename}`;
+          const downloadResult = await client.get(remotePath);
+
+          if (!Buffer.isBuffer(downloadResult)) {
+            result = {
+              ok: false,
+              reason: "sftp_download_failed",
+            };
+          } else if (downloadResult.byteLength !== fileEntry.size) {
+            result = {
+              ok: false,
+              reason: "sftp_download_failed",
+            };
+
+            logger.error("sftp inbox archive download failed", {
+              service: config.serviceName,
+              environment: config.elavonSftpEnvironment,
+              operation: "archive_download",
+              filename,
+              size: fileEntry.size,
+              reason: result.reason,
+            });
+          } else {
+            result = {
+              ok: true,
+              file: {
+                filename: fileEntry.name,
+                size: downloadResult.byteLength,
+                lastModifiedAt: new Date(fileEntry.modifyTime).toISOString(),
+                rawBytes: downloadResult,
+              },
+            };
+
+            logger.info("sftp inbox archive download completed", {
+              service: config.serviceName,
+              environment: config.elavonSftpEnvironment,
+              operation: "archive_download",
+              filename,
+              size: fileEntry.size,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      const reason = connected
+        ? operationStage === "directory"
+          ? "sftp_directory_unavailable"
+          : operationStage === "list"
+            ? "sftp_list_failed"
+            : "sftp_download_failed"
+        : classifyConnectionError(error);
+
+      logger.error("sftp inbox archive download failed", {
+        service: config.serviceName,
+        environment: config.elavonSftpEnvironment,
+        operation: "archive_download",
+        filename,
         reason,
       });
 

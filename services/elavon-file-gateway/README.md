@@ -11,6 +11,7 @@ Pay Cardinal Platform Elavon file gateway service.
 - Reads the Elavon SSH private key and SFTP user ID from Google Secret Manager during controlled readiness checks
 - Verifies SFTP connectivity to the Elavon TEST File Gateway
 - Verifies `/Inbox` availability and lists metadata only through controlled discovery
+- Archives one operator-approved TEST file from `/Inbox` to Cloud Storage without parsing file contents
 
 ## Environment
 
@@ -23,6 +24,7 @@ Pay Cardinal Platform Elavon file gateway service.
 | `ELAVON_SFTP_PORT` | Yes for readiness and discovery | Elavon TEST SFTP port. |
 | `ELAVON_SFTP_USER_ID_SECRET_NAME` | Yes for readiness and discovery | Secret Manager secret name or full secret resource path for the SFTP user ID. |
 | `ELAVON_SSH_PRIVATE_KEY_SECRET_NAME` | Yes for readiness and discovery | Secret Manager secret name or full secret resource path. |
+| `PAYMENTS365_RAW_BUCKET` | Yes for archive | Cloud Storage bucket for immutable raw Payments365 file archives. |
 
 The service relies on the Cloud Run runtime service account for Google Secret Manager access. Do not provide private key material through environment variables.
 
@@ -98,6 +100,40 @@ The `files` array returns only `filename`, `size`, and `lastModifiedAt`.
 
 Safe discovery failure reason codes are `missing_config`, `secret_unavailable`, `sftp_auth_failed`, `sftp_connection_failed`, `sftp_directory_unavailable`, `sftp_list_failed`, `sftp_disconnect_failed`, and `unexpected_error`.
 
+`POST /archive`
+
+Archives exactly one approved Elavon TEST `/Inbox` file to Cloud Storage. The operator must first call `GET /discover/inbox`, select an approved filename from that metadata response, and then call this endpoint. The service performs a fresh `/Inbox` listing before download and downloads only when the requested filename is confirmed in that fresh listing.
+
+Request:
+
+```json
+{
+  "environment": "test",
+  "filename": "approved-test-file.csv"
+}
+```
+
+Sprint 3.4 accepts only `environment: "test"`. Filenames must not contain `/`, `\`, `..`, or path traversal. This endpoint does not parse files, write Cloud SQL, use Google Drive, rename, delete, move, or create Elavon SFTP folders.
+
+Success:
+
+```json
+{
+  "status": "ok",
+  "archive": {
+    "filename": "approved-test-file.csv",
+    "size": 12345,
+    "lastModifiedAt": "2026-06-30T01:22:14.000Z",
+    "downloadedAt": "2026-06-30T15:03:44.000Z",
+    "sha256": "lowercase-hex-digest",
+    "bucket": "configured-bucket-name",
+    "objectPath": "test/2026/06/approved-test-file.csv"
+  }
+}
+```
+
+Safe archive failure reason codes are `missing_config`, `invalid_environment`, `invalid_filename`, `file_not_found`, `secret_unavailable`, `sftp_auth_failed`, `sftp_connection_failed`, `sftp_directory_unavailable`, `sftp_list_failed`, `sftp_download_failed`, `sftp_disconnect_failed`, `storage_upload_failed`, `storage_verification_failed`, `checksum_failed`, and `unexpected_error`.
+
 ## Commands
 
 ```sh
@@ -108,4 +144,4 @@ npm start
 
 ## Scope
 
-This service intentionally contains no file downloads, file uploads, Google Drive uploads, Cloud Storage writes, Cloud SQL writes, file parsing, Elavon business logic, credentials, or secret values.
+This service intentionally contains no Google Drive uploads, Cloud SQL writes, file parsing, Elavon business logic, credentials, or secret values.

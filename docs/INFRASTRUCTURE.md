@@ -186,6 +186,51 @@ At a high level:
 
 This sprint does not configure Secret Manager resources, IAM bindings, or service account access.
 
+## Cloud Storage Raw Archive
+
+Payments365 raw files retrieved through Elavon SFTP are archived unchanged in Cloud Storage before any future parsing step.
+
+| Setting | Value |
+| --- | --- |
+| Bucket | `pc-payments365-raw` |
+| Purpose | Immutable raw archive for Payments365 files retrieved via Elavon SFTP |
+| Region | `us-east1` |
+| Runtime variable | `PAYMENTS365_RAW_BUCKET` |
+| Access | Cloud Run runtime service account only |
+
+The canonical object prefixes are:
+
+```text
+test/YYYY/MM/
+production/YYYY/MM/
+```
+
+The canonical object layout is:
+
+```text
+test/YYYY/MM/<original-filename>
+production/YYYY/MM/<original-filename>
+```
+
+Archive objects must include this metadata:
+
+```text
+source=elavon-sftp
+processor=payments365
+environment=test
+downloadedAt=<ISO-8601>
+originalFilename=<filename>
+sha256=<checksum>
+```
+
+Sprint 3.4 supports only the `test` archive prefix. Production implementation must transition to streaming:
+
+```text
+Elavon SFTP -> Stream -> Cloud Storage
+```
+
+Production files must not be buffered entirely in memory.
+
 ## Logging Standards
 
 Cloud Run services should write structured logs to standard output and standard error so Google Cloud Logging can ingest them automatically.

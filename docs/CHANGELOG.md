@@ -9,6 +9,8 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Added Sprint 3.4 `POST /archive` endpoint contract for operator-approved Elavon TEST file archival.
+- Added Cloud Storage raw archive preparation for Payments365 files retrieved through Elavon SFTP.
 - Added Sprint 3.3 `/discover/inbox` endpoint for metadata-only Elavon TEST `/Inbox` discovery.
 - Added `/Inbox` availability validation to Elavon File Gateway readiness checks without returning file metadata.
 - Completed Sprint 3.2 – Elavon SFTP Connectivity.
@@ -25,6 +27,9 @@ The format is based on Keep a Changelog.
 - Validated authenticated Cloud Run `/health` endpoint.
 
 ### Changed
+- Completed Sprint 3.3 – Remote Directory Discovery.
+- Activated Sprint 3.4 – TEST File Download Pipeline.
+- Documented canonical Cloud Storage object layout for Payments365 raw archives.
 - Clarified the approved Payments365 ingestion architecture.
 - Identified Payments365 as the transaction domain and Elavon Secure File Transfer as the transport layer.
 - Adopted Cloud Storage as the raw archive strategy for Payments365 daily files.

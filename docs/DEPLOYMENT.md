@@ -94,8 +94,11 @@ For Sprint 3.2, Elavon TEST SFTP runtime configuration is supplied through GitHu
 - `ELAVON_SFTP_PORT`
 - `ELAVON_SFTP_USER_ID_SECRET_NAME`
 - `ELAVON_SSH_PRIVATE_KEY_SECRET_NAME`
+- `PAYMENTS365_RAW_BUCKET`
 
 Secret values are not stored in GitHub Repository Variables and must not be included in documentation.
+
+`PAYMENTS365_RAW_BUCKET` is required for Sprint 3.4 archive behavior. It identifies the Cloud Storage bucket used for immutable raw Payments365 files retrieved through Elavon SFTP. GitHub Actions must propagate `PAYMENTS365_RAW_BUCKET` to Cloud Run during deployment. The bucket name must remain runtime configuration and must not be hardcoded in service source code.
 
 ## Environments
 
