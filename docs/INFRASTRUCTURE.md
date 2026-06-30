@@ -198,6 +198,8 @@ Payments365 raw files retrieved through Elavon SFTP are archived unchanged in Cl
 | Runtime variable | `PAYMENTS365_RAW_BUCKET` |
 | Access | Cloud Run runtime service account only |
 
+Cloud Storage is the immutable raw archive.
+
 The canonical object prefixes are:
 
 ```text
@@ -208,8 +210,8 @@ production/YYYY/MM/
 The canonical object layout is:
 
 ```text
-test/YYYY/MM/<original-filename>
-production/YYYY/MM/<original-filename>
+gs://pc-payments365-raw/test/YYYY/MM/<original-filename>
+gs://pc-payments365-raw/production/YYYY/MM/<original-filename>
 ```
 
 Archive objects must include this metadata:
@@ -217,19 +219,25 @@ Archive objects must include this metadata:
 ```text
 source=elavon-sftp
 processor=payments365
-environment=test
+environment=<test|production>
 downloadedAt=<ISO-8601>
 originalFilename=<filename>
 sha256=<checksum>
 ```
 
-Sprint 3.4 supports only the `test` archive prefix. Production implementation must transition to streaming:
+Sprint 3.4 implementation is complete and Architecture has approved the implementation. Sprint 3.4 remains open while controlled production archive validation is paused pending explicit confirmation from JD/Elavon before downloading a one-time production Payments365 file.
+
+The Sprint 3.4 implementation uses the `test` archive path. Production archive execution remains gated.
+
+Production implementation must transition to streaming:
 
 ```text
 Elavon SFTP -> Stream -> Cloud Storage
 ```
 
 Production files must not be buffered entirely in memory.
+
+WARNING: Elavon production files may be available for only one download and may have limited retention. `GET /discover/inbox` is safe because it lists metadata only. `POST /archive` may permanently consume the available download unless Elavon re-flags the file. Do not execute `POST /archive` until JD/Elavon confirmation, exact filename approval, and all validation prerequisites are complete.
 
 ## Logging Standards
 
@@ -268,10 +276,23 @@ The workflow must be configured with GitHub repository variables and secrets bef
 Configure these GitHub Actions repository variables:
 
 ```text
+CLOUD_RUN_CONCURRENCY
+CLOUD_RUN_CPU
+CLOUD_RUN_INGRESS
+CLOUD_RUN_MAX_INSTANCES
+CLOUD_RUN_MEMORY
+CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT
+CLOUD_RUN_SERVICE
+CLOUD_RUN_TIMEOUT
+ELAVON_SFTP_ENV
+ELAVON_SFTP_HOST
+ELAVON_SFTP_PORT
+ELAVON_SFTP_USER_ID_SECRET_NAME
+ELAVON_SSH_PRIVATE_KEY_SECRET_NAME
+GAR_REPOSITORY
 GCP_PROJECT_ID
 GCP_REGION
-GAR_REPOSITORY
-CLOUD_RUN_SERVICE
+PAYMENTS365_RAW_BUCKET
 ```
 
 `GCP_PROJECT_ID` is the target Google Cloud project ID.
@@ -281,6 +302,20 @@ CLOUD_RUN_SERVICE
 `GAR_REPOSITORY` is the Artifact Registry Docker repository name.
 
 `CLOUD_RUN_SERVICE` is the target Cloud Run service name.
+
+`ELAVON_SFTP_ENV`, `ELAVON_SFTP_HOST`, and `ELAVON_SFTP_PORT` are runtime SFTP configuration.
+
+Current intended production SFTP runtime configuration:
+
+```text
+ELAVON_SFTP_ENV=production
+ELAVON_SFTP_HOST=filegateway.elavon.com
+ELAVON_SFTP_PORT=20022
+```
+
+`ELAVON_SFTP_USER_ID_SECRET_NAME` and `ELAVON_SSH_PRIVATE_KEY_SECRET_NAME` are Secret Manager references, not credential values. The same Secret Manager credential references are currently used unless repository documentation records a different approved credential set.
+
+`PAYMENTS365_RAW_BUCKET` identifies the immutable raw archive bucket and is intentionally a non-secret runtime variable.
 
 ### Required GitHub Secrets
 
@@ -294,6 +329,8 @@ WIF_SERVICE_ACCOUNT
 `WIF_PROVIDER` is the full Workload Identity Federation provider resource name.
 
 `WIF_SERVICE_ACCOUNT` is the Google service account email that GitHub Actions impersonates.
+
+These secrets are deployment credentials only. Elavon credentials remain in Google Secret Manager.
 
 Do not use service account key JSON files for repository deployments.
 

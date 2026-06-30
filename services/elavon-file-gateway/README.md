@@ -9,24 +9,46 @@ Pay Cardinal Platform Elavon file gateway service.
 - Cloud Run compatible HTTP listener
 - Uses `process.env.PORT`, defaulting to `8080` locally
 - Reads the Elavon SSH private key and SFTP user ID from Google Secret Manager during controlled readiness checks
-- Verifies SFTP connectivity to the Elavon TEST File Gateway
+- Verifies SFTP connectivity to the configured Elavon File Gateway environment
 - Verifies `/Inbox` availability and lists metadata only through controlled discovery
 - Archives one operator-approved TEST file from `/Inbox` to Cloud Storage without parsing file contents
+
+Sprint 3.4 implementation is complete and Architecture has approved the implementation. Sprint 3.4 remains open while controlled production archive validation is paused pending explicit confirmation from JD/Elavon before downloading a one-time production Payments365 file.
+
+Production runtime configuration has been updated for validation. Production `/health` and `/ready` return HTTP 200. Production metadata discovery through `GET /discover/inbox` is pending unless separately recorded in operator validation notes.
+
+WARNING: Elavon production files may be available for only one download and may have limited retention.
+
+`GET /discover/inbox` is safe.
+
+`POST /archive` may permanently consume the available download unless Elavon re-flags the file. Do not execute `POST /archive` until all validation prerequisites and explicit user approval have been completed.
 
 ## Environment
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `PORT` | No | HTTP listener port. Defaults to `8080`. |
-| `GCP_PROJECT_ID` | Yes for readiness and discovery | Google Cloud project containing the secret. |
-| `ELAVON_SFTP_ENV` | Yes for readiness and discovery | Elavon SFTP environment. Sprint 3.3 supports `test`. |
-| `ELAVON_SFTP_HOST` | Yes for readiness and discovery | Elavon TEST SFTP host. |
-| `ELAVON_SFTP_PORT` | Yes for readiness and discovery | Elavon TEST SFTP port. |
+| `GCP_PROJECT_ID` | Yes for readiness and discovery | Google Cloud project containing the secrets. |
+| `ELAVON_SFTP_ENV` | Yes for readiness and discovery | Elavon SFTP environment. Supported runtime values are `test` and `production`. |
+| `ELAVON_SFTP_HOST` | Yes for readiness and discovery | Elavon SFTP host for the configured runtime environment. |
+| `ELAVON_SFTP_PORT` | Yes for readiness and discovery | Elavon SFTP port for the configured runtime environment. |
 | `ELAVON_SFTP_USER_ID_SECRET_NAME` | Yes for readiness and discovery | Secret Manager secret name or full secret resource path for the SFTP user ID. |
 | `ELAVON_SSH_PRIVATE_KEY_SECRET_NAME` | Yes for readiness and discovery | Secret Manager secret name or full secret resource path. |
 | `PAYMENTS365_RAW_BUCKET` | Yes for archive | Cloud Storage bucket for immutable raw Payments365 file archives. |
 
 The service relies on the Cloud Run runtime service account for Google Secret Manager access. Do not provide private key material through environment variables.
+
+Current intended production SFTP runtime configuration:
+
+```text
+ELAVON_SFTP_ENV=production
+ELAVON_SFTP_HOST=filegateway.elavon.com
+ELAVON_SFTP_PORT=20022
+```
+
+The same Secret Manager credential references are currently used unless repository documentation records a different approved credential set. Do not invent undocumented credential names.
+
+`PAYMENTS365_RAW_BUCKET` is intentionally a non-secret runtime variable. The SFTP user ID and SSH private key values remain in Google Secret Manager.
 
 ## Endpoints
 
@@ -77,7 +99,11 @@ Safe readiness failure reason codes are `missing_config`, `secret_unavailable`, 
 
 `GET /discover/inbox`
 
-Connects to the Elavon TEST SFTP server, targets `/Inbox`, lists directory entries, returns file metadata only, and disconnects cleanly. This endpoint does not download, upload, rename, move, delete, parse, or mutate files.
+Connects to the configured Elavon SFTP environment, targets `/Inbox`, lists directory entries, returns file metadata only, and disconnects cleanly.
+
+This endpoint is metadata only and directory listing only. It is safe to execute for production metadata inspection because it does not download, upload, archive, rename, move, delete, parse, or otherwise mutate Elavon SFTP files.
+
+During validation, TEST `/Inbox` returned `fileCount: 0`.
 
 Success:
 
@@ -104,6 +130,8 @@ Safe discovery failure reason codes are `missing_config`, `secret_unavailable`, 
 
 Archives exactly one approved Elavon TEST `/Inbox` file to Cloud Storage. The operator must first call `GET /discover/inbox`, select an approved filename from that metadata response, and then call this endpoint. The service performs a fresh `/Inbox` listing before download and downloads only when the requested filename is confirmed in that fresh listing.
 
+This is the first endpoint that retrieves file contents. It uploads unchanged bytes to Cloud Storage and may consume a one-time Elavon download.
+
 Request:
 
 ```json
@@ -114,6 +142,8 @@ Request:
 ```
 
 Sprint 3.4 accepts only `environment: "test"`. Filenames must not contain `/`, `\`, `..`, or path traversal. This endpoint does not parse files, write Cloud SQL, use Google Drive, rename, delete, move, or create Elavon SFTP folders.
+
+Do not execute `POST /archive` for production validation until JD/Elavon confirms that downloading one production file is approved, the user approves one exact filename, and the validation can complete in one uninterrupted execution. Exactly one approved production file may be archived after approval.
 
 Success:
 
@@ -133,6 +163,27 @@ Success:
 ```
 
 Safe archive failure reason codes are `missing_config`, `invalid_environment`, `invalid_filename`, `file_not_found`, `secret_unavailable`, `sftp_auth_failed`, `sftp_connection_failed`, `sftp_directory_unavailable`, `sftp_list_failed`, `sftp_download_failed`, `sftp_disconnect_failed`, `storage_upload_failed`, `storage_verification_failed`, `checksum_failed`, and `unexpected_error`.
+
+## Cloud Storage Archive Layout
+
+Cloud Storage is the immutable raw archive for Payments365 files retrieved through Elavon SFTP.
+
+Canonical object layout:
+
+```text
+gs://pc-payments365-raw/test/YYYY/MM/<original-filename>
+gs://pc-payments365-raw/production/YYYY/MM/<original-filename>
+```
+
+Current Sprint 3.4 archive implementation writes approved TEST files only.
+
+## Follow-up Recommendations
+
+- Reduce Cloud Storage IAM from `storage.objectAdmin` to least privilege after archive validation completes.
+- Consider separate Cloud Run services for TEST and PRODUCTION through a future ADR.
+- Consider an ADR for immutable raw archive naming policy.
+- Consider an ADR for archive idempotency policy.
+- Do not enable scheduler until controlled archive validation has completed successfully.
 
 ## Commands
 

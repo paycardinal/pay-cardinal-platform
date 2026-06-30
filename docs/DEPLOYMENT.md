@@ -87,7 +87,7 @@ Runtime configuration is controlled through GitHub Repository Variables.
 
 The Elavon File Gateway runtime service account is `pc-elavon-runtime`.
 
-For Sprint 3.2, Elavon TEST SFTP runtime configuration is supplied through GitHub Repository Variables:
+Elavon File Gateway deployment uses GitHub Repository Variables for non-secret runtime configuration:
 
 - `ELAVON_SFTP_ENV`
 - `ELAVON_SFTP_HOST`
@@ -96,9 +96,53 @@ For Sprint 3.2, Elavon TEST SFTP runtime configuration is supplied through GitHu
 - `ELAVON_SSH_PRIVATE_KEY_SECRET_NAME`
 - `PAYMENTS365_RAW_BUCKET`
 
-Secret values are not stored in GitHub Repository Variables and must not be included in documentation.
+The SFTP environment, host, port, and `PAYMENTS365_RAW_BUCKET` are runtime configuration, not secrets. `PAYMENTS365_RAW_BUCKET` is intentionally a non-secret runtime variable.
+
+The SFTP user ID and SSH private key values remain in Google Secret Manager. GitHub Repository Variables may reference the Secret Manager secret names or full secret resource paths, but must not contain the credential values.
+
+The active deployment workflow uses GitHub Repository Secrets only for deployment authentication:
+
+- `WIF_PROVIDER`
+- `WIF_SERVICE_ACCOUNT`
+
+These are deployment credentials for Workload Identity Federation. They are not Elavon credentials.
 
 `PAYMENTS365_RAW_BUCKET` is required for Sprint 3.4 archive behavior. It identifies the Cloud Storage bucket used for immutable raw Payments365 files retrieved through Elavon SFTP. GitHub Actions must propagate `PAYMENTS365_RAW_BUCKET` to Cloud Run during deployment. The bucket name must remain runtime configuration and must not be hardcoded in service source code.
+
+Cloud Storage is the immutable raw archive for Payments365 files retrieved through Elavon SFTP.
+
+Canonical object layout:
+
+```text
+gs://pc-payments365-raw/test/YYYY/MM/<original-filename>
+gs://pc-payments365-raw/production/YYYY/MM/<original-filename>
+```
+
+Current intended production SFTP runtime configuration:
+
+```text
+ELAVON_SFTP_ENV=production
+ELAVON_SFTP_HOST=filegateway.elavon.com
+ELAVON_SFTP_PORT=20022
+```
+
+The same Secret Manager credential references are currently used unless repository documentation records a different approved credential set. Do not invent undocumented credential names.
+
+## Production Validation Gate
+
+Sprint 3.4 implementation is complete and Architecture has approved the implementation. Sprint 3.4 remains open while controlled production archive validation is paused pending explicit confirmation from JD/Elavon before downloading a one-time production Payments365 file.
+
+Production `/health` and `/ready` have returned HTTP 200 after production runtime configuration was applied. Production metadata discovery through `GET /discover/inbox` is documented as pending unless separately recorded in operator validation notes.
+
+WARNING: Elavon production files may be available for only one download and may have limited retention.
+
+`GET /discover/inbox` is safe for production metadata inspection because it performs directory listing only and returns metadata only. It does not download files, archive files, parse files, or mutate Elavon SFTP.
+
+`POST /archive` is the first endpoint that retrieves file contents. It may permanently consume the available download unless Elavon re-flags the file. Do not execute `POST /archive` until JD/Elavon confirmation has been received, the user has approved one exact filename, and the validation can complete in one uninterrupted execution.
+
+Do not enable scheduler until controlled archive validation has completed successfully.
+
+Do not create the `v0.5.0-file-download-pipeline` tag until Sprint 3.4 closes.
 
 ## Environments
 
